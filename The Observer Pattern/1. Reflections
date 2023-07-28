@@ -1,0 +1,10 @@
+## Why do we need the Observer pattern?
+
+The Observer pattern is useful for two major reasons:
+
+-   **Preparation**
+-   **Generality**
+
+**Preparation**: The implementation mechanisms we use in the  **Observer**  are similar to in the  **Reactor**. As such, the  **Observer**  implementation can serve as a gentle introduction to the more complex architectural  **Reactor**  pattern.
+
+**Generality**: The event notification is a central part of many applications. Decoupling the sender and receiver of a certain notification is crucial. Today, many programming languages have come to include native support for  **Observer**. C#, for example, provides a general version with its events mechanism. And of course, Common Lisp has had it forever through the `:before` and `:after` methods that make  **Observer**  implementations both trivial and expressive. In C, we have to go through more challenges to arrive at an implementation that fits. Done right, observers can still be a viable solution.

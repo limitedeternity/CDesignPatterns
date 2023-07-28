@@ -1,0 +1,49 @@
+## Implementing Reactor
+
+In this lesson, we’ll step outside the domain of standard C and investigate a pattern for event-driven applications. The **Reactor** pattern decouples different responsibilities and allows applications to demultiplex and dispatch events from potentially many clients.
+
+## The case of many clients
+
+Diagnostics of individual subsystems are gathered in one central unit to simplify the maintenance of large systems. Each subsystem connects to the diagnostics server using **TCP**. As **TCP** is a connection-oriented protocol, the clients (the different subsystems) have to request a connection at the server. Once a connection is established, a client may send diagnostics messages at any time.
+
+Even in this strongly simplified example, there are several potential problems. Several unrelated responsibilities have been built into one module by intertwining the application logic with the networking code and the code for event dispatching. Such a design is likely to lead to serious **maintenance**, **testability**, and **scalability** problems by violating a fundamental design principle.
+
+### The Single Responsibility Principle
+
+The single responsibility principle states that **“a class should have only one reason to change”**. 
+
+The goal of this principle is close to that of the open-closed principle treated below. Both strive to protect existing code from modifications. When violating the **single responsibility principle**, a module gets more reasons to change, and necessary modifications become more likely. Worse, the different responsibilities absorbed by a single module may become coupled and interact with each other making modifications and testing of the module more complicated.
+
+The **single responsibility principle** is basically about **cohesion**. It is useful and valuable on many levels of abstraction, not just in an object-oriented context; simply replacing the word “**class**” with “**function**” enables us to analyze algorithms like the one above for this principle.
+
+### Violation of the Open-Closed Principle
+
+-   By violating the  **single responsibility principle**, the module in the example above will be hard to maintain.
+-   It is a code that no one ever wants to dig into in the future. Unfortunately, on collision course with that wish is the fact that the event loop above violates the open-closed principle.
+-   We cannot add new functionality without modifying existing code.
+
+Related to our example, a diagnostics server typically allows a technician to connect and query stored information. Introducing that functionality would double the logic in the event loop. This design makes the code expensive to modify.
+
+## From a performance perspective
+
+To make things worse, the solution above fails to scale in terms of performance as well. As all events are scanned serially, even when timeouts are used, we waste time doing nothing.
+
+The potential performance problem above may be derived from the failure of taking the concurrent nature of the problem into account. One approach to address this problem is by introducing multiple threads:
+
+-   The diagnostics server keeps its event loop, but the loop is now reduced to scan for connection requests.
+-   As soon as a connection is requested, a new thread is allocated exclusively for handling messages on that new connection.
+
+The multithreading approach fails to address the overall design issue as it still violates both the  **single responsibility principle**  and the  **open-closed principle**. Although the code for scanning and dispatching diagnostics messages is moved out of the event loop, adding a new server port still requires modifications to the existing code.
+
+From a design perspective threads didn’t improve anything. This solution may be due to context switches and synchronization performing worse than the initial single-threaded approach.
+
+The sheer complexity inherent in designing and implementing multithreaded applications is a further argument for discarding this solution.
+
+## Problem summary
+
+The design fails because it assumes three different responsibilities. This problem is bound to get worse as the design violates the open-closed principle, making modifications to existing code more likely.
+
+Ideally, the design should scale well, encapsulate and decouple the different responsibilities, and serve multiple clients simultaneously without introducing the liabilities of multithreading.
+
+The **Reactor** pattern provides the solution by encapsulating each service of the application logic into event handlers and separating the code for event demultiplexing.
+

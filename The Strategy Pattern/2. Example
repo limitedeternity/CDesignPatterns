@@ -1,0 +1,61 @@
+## Example
+
+Identifying and exploiting commonality is fundamental to software design. By **encapsulating** and **reusing common functionality**, the quality of the design rises above code duplication and dreaded anti-patterns like copy-paste. This lesson dives into a design pattern that adds flexibility to common software entities by letting clients customize and extend them without modifying existing code.
+
+## Control coupled customers
+
+To attract and keep customers, many companies offer some kind of bonus system. In our example, a customer is placed in one of three categories:
+
+-   Bronze customers: Get a 2 % reduction on every item bought.
+-   Silver customers: Get a 5 % reduction on every item bought.
+-   Gold customers: Get 10 % off on all items and free shipping.
+
+A straightforward way to implement a price calculation based on this bonus system is conditional logic.
+
+```c
+typedef enum
+{
+	bronzeCustomer,
+	silverCustomer,
+	goldCustomer
+} CustomerCategory;
+
+double calculatePrice(CustomerCategory category, double totalAmount, double shipping)
+{
+	double price =  0;
+
+	/* Calculate the total price depending on customer category. */
+	switch  (category)
+	{
+		case bronzeCustomer:
+			price = totalAmount *  0.98  + shipping;
+			break;
+
+		case silverCustomer:
+			price = totalAmount *  0.95  + shipping;
+			break;
+
+		case goldCustomer:
+			/* Free shipping for gold customers.*/
+			price = totalAmount *  0.90;
+			break;
+
+		default:
+			onError("Unsupported category");
+			break;
+	}
+	
+	return price;
+}
+```
+
+Before further inspection of the design, I would like to point out that representing currency as double may lead to marginally inaccurate results. Carelessly handled, they may turn out to be fatal too, for example, a banking system. Further, one should never ignore security issues like a possible overflow in business code. However, such issues have been deliberately left out of our example so that we can focus on the problem in the scope of this course.
+
+By returning to the code, it is possible to identify three serious design problems with the approach that wouldn’t stand up well in the real world:
+
+-   **Conditional logic:**  The solution above basically switches on a type code, leading to the risk of introducing a maintenance challenge. For example, we must address the security issues mentioned above on more than one branch leading to potentially complicated, nested conditional logic.
+-   **Coupling:** The client of the function above passes a flag (`category`) used to control the inner logic of the function. Page-Jones defines this kind of coupling as **control coupling**, and he concludes that control coupling itself isn’t the problem but that it **often indicates the presence of other, more gruesome, design ills**. One such design flaw is encapsulation loss. The client of the function above knows about its internals. That is, the knowledge of the different customer categories spreads among several modules.
+-   **It doesn’t scale:**  As a consequence of the design ills identified above, the solution has a scalability problem. If the customer categories are extended, the inflexibility of the design forces modification to the function above. Modifying existing code is often an error-prone activity.
+
+The potential problems listed above may derive from the failure of adhering to one, important design principle.
+

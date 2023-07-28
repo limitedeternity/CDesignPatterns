@@ -1,0 +1,38 @@
+## Comparison of Strategy and State
+
+When discussing the Strategy pattern, its relationship with the pattern preceding it in the  _**Design Patterns**_  book deserves special mention. The design patterns State and Strategy are closely related. As Robert C. Martin puts it,
+
+**“All instances of the State pattern are also instances of the Strategy pattern, but not all instances of Strategy are State.”**
+
+This observation leads us to a recommendation by John Vlissides, co-author of _**Design Patterns**_, which states that you should, **“let the intents of the patterns be your guide to their differences and not the class structures that implement them”** .  
+And indeed, even though State and Strategy have a similar structure and use similar mechanisms, they differ in their intent. The State pattern focuses upon managing well-defined transitions between discrete states, whereas the primary purpose with Strategy is to vary the implementation of an algorithm.
+
+Related to the example above, had the categories been based on the sum of money spent by a customer:
+
+-   State would have been a better choice
+-   The categories would illustrate the lifecycle of a customer, as the transitions between categories depend upon the history of the customer object itself.
+-   The State pattern would implement this behavior as a finite state machine.
+
+On the other hand, if placement in a certain category results from a membership fee, **Strategy** is a better abstraction. It is still possible for a customer to wander between different categories, but a transition to a new category doesn’t depend upon the history of that customer object.
+
+Although not to be taken as a universal truth, a further observation relates to the usage of these two patterns and their relationships towards the client. **State** tends to be an internal concern of the context, and the client usually encapsulates the State’s existence. Contrasting this with **Strategy**, the client usually binds a concrete strategy to its context.
+
+## Consequences
+
+The main consequences of applying the Strategy pattern are:
+
+-   **The benefits of the open-closed principle:**  The design pattern Strategy offers great flexibility because it allows clients to change and control the behavior of an existing module by implementing their concrete strategies. Thus, the new behavior is supported by adding new code instead of modifying existing code.
+-   **Reduces complex conditional logic:**  Complex interactions may lead to monolithic modules littered with conditional logic, potentially in the form of control coupling. Such code tends to be hard to maintain and extend. By encapsulating each branch of the conditionals in a strategy, the Strategy pattern eliminates conditional logic.
+-   **Allows different versions of the same algorithm:** The non-functional requirements on a module may typically vary depending on its usage. The typical trade-off between an algorithm optimized for speed versus one optimized for memory usage is classical. The user may be delegated the choice of trade-offs through the Strategy pattern. According to _**Design Patterns**_, “**strategies can provide different implementations of the same behavior**”
+-   **An extra level of indirection:**  The main issue arises as data from the context has to be obtained in a strategy. As all functions used as strategies have to follow the same signature, simply adding potentially unrelated parameters lowers the cohesion.
+
+Implementing the context as a **First-Class ADT** may solve this problem as it reduces the parameters to a single handle. With the **First-Class ADT** approach, the knowledge about the data of interest is encapsulated within each strategy and obtained through the handle to the **First-Class ADT**.
+
+A careful design should strive to keep the module implemented as a **First-Class ADT** highly cohesive and avoid having it decay into a repository of unrelated data needed by different strategies. Such a design flaw typically indicates that we have chosen the wrong abstraction.
+
+Similarly, suppose the flexibility of the Strategy pattern isn’t needed, and the problem could be solved by conditional logic that is easy to follow. In that case, the latter is probably a better choice.
+
+## Example of use
+
+Strategy may prove useful for specifying policies in framework design. Using Strategy, clients may parameterize the implementation.
+

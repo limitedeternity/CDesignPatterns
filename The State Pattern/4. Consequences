@@ -1,0 +1,69 @@
+## Extending the State Machine
+
+One of the State pattern strengths is that it encapsulates all state-specific behavior, making the state machine easy to extend.
+
+-   **Adding a new event:**  Supporting a new event implies extending the  `WatchState`  structure with a declaration of another pointer to a function. To add a new default implementation of the event to  `WatchState.c`, use the mechanism described above. This step protects existing code from changes; the only impact on the concrete states is on the states that intend to support the new event, which have to implement a function of the correct signature to handle it.
+-   **Adding a new state:**  The new, concrete state has to implement functions for all events supported in that state. The only existing code that needs to be changed is the state in which we’ll transition to the new state. Please note that the State pattern preserves one of the benefits of the table-based solution: client code, i.e., the context, remains unchanged.
+
+## Stateful States
+
+The states in the sample code are stateless, i.e., the `WatchState` structure only contains pointers to reentrant functions. Indeed, this is a special case of the State pattern because **“if State objects have no instance variables […] then contexts can share a State object”**. Don’t forget **Joshua Kerievsky’s** advice that **“it’s always best to add state-sharing code after your users experience system delays and profiler points you to the state-instantiation code as a prime bottleneck.”**
+
+In the C language, you can share states by declaring a static variable representing a certain state inside each function used as an entry point upon a state transition. As the variables now have permanent storage, the signatures of transition functions are changed to return a pointer to the variable representing the particular state.
+
+```c
+WatchStatePtr transitionToStarted(void)
+{
+	static struct WatchState startedState;
+	static int initialized =  0;
+
+	if (0 == initialized)
+	{
+		defaultImplementation(&startedState);
+		startedState.stop = stopWatch;
+		initialized =  1;
+	}
+
+	return &startedState;
+}
+```
+
+We need to change the client code from holding a variable representing the state to holding a pointer to the variable representing the shared state. Further, the context has to invoke a callback function as the concrete state requests a state transition.
+
+```c
+void changeState(DigitalStopWatchPtr instance, WatchStatePtr newState)
+{
+	/* Provides a good place for controls and trace messages (all state transitions have to go through this function). */
+	instance->state = newState;
+}
+```
+
+This version comes closer to the State described in _**Design Patterns**_ as a state transition. In contrast with the previous approach, it implies changing the object pointed to by the context instead of just swapping its behavior.
+
+```c
+static void startWatch(DigitalStopWatchPtr context)
+{
+	changeState(context, transitionToStarted());
+}
+```
+
+Now the point of state transitions is centralized within its context, which is one of the best qualities of the stateful approach. One obvious drawback is the need to pass around a reference to the context. This reference functions as a memory, allowing the mapping of the new state to the correct context.
+
+Another drawback is the care that has to be taken with the initialization of the static variables if states live in a multithreaded world.
+
+## Consequences
+
+The main consequences of applying the State pattern are:
+
+-   **Reduces duplication introduced by complex, state-altering conditional logic:**  As illustrated in the example above, solutions based upon large segments of conditional logic tend to contain duplicated code. The State pattern provides an appealing alternative by removing the duplication and reducing the complexity.
+-   **A clear expression of the intent:**  The context delegates all state-dependent operations to the state interface. Similar to the table-based solution, the State pattern lets the code reflect the intent of abstracting the problem as a finite state machine. With complex, conditional logic, that intent is typically less explicit.
+-   **Encapsulates the behavior of each state:**  Each concrete state provides a good overview of its behavior, including all events supported in that very state. This encapsulation makes it easy to identify and update the relevant code when we need to make changes to a certain state.
+-   **Implicit error handling:**  The solutions based on conditional or table-based logic require explicit code to ensure that a given combination of state and event is valid. We build the controls into the solution using the technique described above to initialize with a default implementation.
+-   **Increases the number of compilation units:**  The code typically becomes less compact with the State pattern. As Design Patterns says  **“such distribution is good if there are many states.”**  However, for a trivial state machine with few, simple states, the State pattern may introduce unnecessary complexity. In that case, if we don’t know whether the State will add more complex behavior, it is probably better to rely on conditional logic in case the logic will be easy to follow.
+
+## Summary
+
+The State pattern lets us express a finite state machine, making the intent of the code clear. The behavior is partitioned on a per-state basis and all state transitions are explicit.
+
+The State pattern may serve as a valuable tool when implementing complex state-dependent behavior. On the other hand, for simple problems with few states, conditional logic is probably just right.
+

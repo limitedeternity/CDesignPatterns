@@ -1,0 +1,17 @@
+## Criticism
+
+Over the years, the **State pattern** has been **refactored** several times.
+The problems with the State pattern are:
+
+- The name can cause confusion if used with imperative programming.
+- It’s quite a complex pattern and, in most cases, simpler alternatives will do.
+- In simple cases, explicit conditional logic works well and State isn’t needed.
+
+As far as the name of the pattern is concerned, _**Design Patterns**_ suggests a better name: **Objects For State**. The alternative name is the better fit because it expresses both the intent and resulting structure in a more obvious way.
+
+Introducing state in our programs has implications for our ability to reason about them. Not only do we have to consider the algorithm in the light of its input arguments:
+
+-   **We must also determine the current state.**
+-   **How will it impact the computation?**
+
+To complicate matters more, most of these states are hidden as implicit elements within the design. They’re expressed as combinations of different variables. It would be easier to express these as state machines in our code. By organizing and partitioning the algorithms into explicit states, we get a different view of the problem, a simplification that allows us to assess the impact of potential changes. While all good designs try to keep side effects to a minimum, a mutable state is a complicated aspect inherent in imperative programming. We need conceptual tools to express it successfully.

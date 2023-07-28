@@ -1,0 +1,42 @@
+## Dijkstra’s views on software development
+
+In his talk at the Turing awards 1972, Dijkstra remarked that computer programming is an “intellectual challenge which will be without precedent in the cultural history of mankind” (Dijkstra, 1972). Dijkstra asked what makes software development so hard, “without precedent” compared to anything else we’ve constructed? Dijkstra answers, concluding that a “competent programmer is fully aware of the strictly limited size of his own skull”. This references the cognitive challenges of software development. Programming stretches our cognitive abilities to a maximum and we need to counter with effective design strategies to handle all the complexity inherent in software.
+
+## Working memory
+
+One of the main factors limiting the size of our skull is working memory. Working memory is a theoretical construct and is understood as the system that allows us to:
+
+- Hold information in our minds.
+- Integrate different parts of the information.
+- Consider the information.
+- Manipulate the information.
+
+Working memory is what we use when we try to decipher a function in Lisp, understand the relationship between two Java objects, or find a way to express a certain domain rule in Haskell. It’s the conscious workbench of our mind.
+
+Working memory is vital to our:
+
+- Reasoning.
+- Problem-solving.
+- Decision-making.
+
+It’s also strictly limited in its capacity. Back in 1956, George Miller made the first quantification of our working memory capacity. Miller arrived at the now well-known heuristic of **"The Magical Number Seven, Plus or Minus Two."**
+
+## Chunking
+
+Given the mere seven items we can hold in the working memory simultaneously, it’s no wonder that programming is difficult. Any interesting complex programming problem has a multitude of:
+
+-   Parameters.
+-   Implications.
+-   Possible alternatives.
+
+One way around this limitation is **chunking**. Chunking is an encoding strategy where individual elements are grouped into higher-level groups, chunks. While the limit on the number of units still applies, each unit now holds more information.
+
+Patterns are a sophisticated form of chunking. Instead of describing a design as a function that takes another function as an argument, we would use Strategy. Using strategy, patterns serve as a handle to sophisticated knowledge stored in our long-term memory. The function given as an argument expresses the variability in the algorithm. That lets us extend the behavior without modifying the algorithm itself. We just write a new function fulfilling the contract.
+
+When it comes to software maintenance, a significant part of the budget for any successful product, documented patterns are an economic advantage.
+
+Patterns have psychological value beyond chunking. Just like Alexander intended,
+
+- Patterns allow us to build and share a common vocabulary.
+- Patterns simplify communication. They are also a powerful reasoning tool.
+- Instead of reasoning about individual design elements and coding constructs, patterns provide a way to group these concepts into a larger unit.

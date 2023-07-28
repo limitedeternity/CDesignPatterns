@@ -1,0 +1,14 @@
+## sizeof(variable)
+
+With this idiom, the size information automatically matches the required type.
+
+* Example 1:
+```c
+CustomerPtr customer = malloc(sizeof *customer);
+```
+
+* Example 2:
+```c
+uint32_t message_size = 0; memcpy(&message_size, binary_stream, sizeof message_size);
+```
+

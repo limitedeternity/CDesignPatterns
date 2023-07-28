@@ -1,0 +1,6 @@
+## Array Size by Division
+
+```c
+// [_countof Macro | Microsoft Learn](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/countof-macro?view=msvc-170)
+#define _countof(array) (sizeof(array) / sizeof(array[0]))
+```

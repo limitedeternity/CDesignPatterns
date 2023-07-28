@@ -1,0 +1,50 @@
+## Why We Need First-Class ADT Pattern
+
+Our journey through the patterns will start with a language level pattern that decouples interface from implementation, thus:
+
+- **Improving encapsulation.**
+- **Providing loose dependencies.**
+
+This pattern will lay the foundation for many of the subsequent patterns in this course.
+
+## First-Class ADT pattern
+
+Imagine that you are close to a project deadline when your project manager rushes into your office citing that the test team found a problem with your code. According to the team, the code cannot register more than 42 orders for a given customer.
+
+You assume that the issue is within the hardcoded limits so you launch your code editor and open a file with the following content:
+
+```c
+/* Include guards and include files omitted. */
+#define MAX_NO_OF_ORDERS 42 
+
+/* Internal representation of a customer. */
+typedef struct
+{ 
+	const char* name;
+	Address address;
+	size_t noOfOrders;
+	Order orders[MAX_NO_OF_ORDERS]; 
+} Customer; 
+
+void initCustomer(Customer* theCustomer, const char* name, const Address* address);
+void placeOrder(Customer* customer, const Order* order);
+
+/* A lot of other related functions... */
+```
+
+How should you solve this issue? One would think that simply increasing `MAX_NO_OF_ORDERS` would do. But then you have to ask what the correct value should be and whether customers with one order should allocate space for 2047 non-existing orders?
+
+For the above problem, the current solution doesn’t scale well enough. We need to use a **linked list** to allocate space for orders on-demand. Although a linked list will solve the problem, we will have to change the internal `Customer` structure.
+
+In this case though, the users of the module must simply use the provided functions for all access to the `Customer` structure.
+
+**Updating those functions should be enough, shouldn’t it?**
+
+## Information hiding
+
+Well, in an ideal world, the change would be isolated to one, single module. Given the interface above, users depend upon the internal structure in at least one way. At worst, though, the users would alter the internals of the data structure themselves, leading to costly changes for all clients.
+
+Frequent code inspections and programmer discipline can prevent this. In any case, we still have the compile-time dependencies. Changes require a recompilation for all clients, and the compilation time may be significant in large systems.
+
+The First-Class ADT pattern eliminates both dependency problems. The pattern provides us with a method of separating interface from implementation, achieving true information hiding.
+

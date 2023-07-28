@@ -1,0 +1,75 @@
+## Dependencies arise
+
+Returning to the examples used for the  **State**  pattern, we described techniques for implementing the behavior of a simple digital stop-watch:
+
+-   Implementing such a watch typically involves the task of fetching the time from some kind of time source.
+-   As the time source probably will be tied to interactions with the operating system, it is good to encapsulate it in an abstraction hiding the system-specific parts to ease unit testing and portability.
+-   Similarly, we should encapsulate the internals of the digital stop-watch in a module of its own.
+-   As the digital stop-watch is responsible for fetching the time from the time-source (to present it on its digital display), it stays clear that there will be a dependency between the watch and the time-source. There are two obvious choices for the direction of this dependency.
+
+## Consider the watch as a client
+
+It may seem rather natural to consider the watch as a client of the time source. That is, letting the watch depend upon the time-source. Unfortunately, implementing the dependency in this direction introduces one obvious problem:
+
+**How does the watch know if the time changes?**
+
+The quick answer is: it doesn’t.
+
+At least it doesn’t unless it introduces polling mechanism towards the time source. Just as important as it is to avoid premature optimization, one should also strive to avoid premature pessimization. Even if the dependency direction seems correct, this solution is very likely to be extremely CPU-consuming. If the application needs to do more than update a display, the problem calls for another solution.
+
+## Let the time-source update the watch
+
+We can easily avoid the potential capacity problem described above by reversing the dependency. The time source may simply notify the watch as soon as its time changes. This approach introduces the time source’s dependency on the watch.
+
+```c
+#include "DigitalStopWatch.h"
+#include "SystemTime.h"
+
+static DigitalStopWatchPtr digitalWatch;
+static SystemTime currentTime;
+
+/* Invoked once by the application at start-up. */
+void startTimeSource()
+{
+	digitalWatch = createWatch();
+	/* Code for setting up handlers for interrupts, or the like, in order to get notified each millisecond from the operating system. */ 
+} 
+
+/* This function is invoked each millisecond through an interaction with the operating system. */
+static void msTick()
+{
+	/* Invoke a function encapsulating the knowledge about time representation. */
+	currentTime = calculateNewTime();
+
+	/* Inform the watch that another millisecond passed. */
+	notifyChangedTime(digitalWatch,&currentTime);
+}
+```
+
+The attractiveness of this approach lies in its simplicity. However, if we desire scalability and flexibility for the solution, the trade-offs are unacceptable. The potential problems introduced are best described in terms of the principles that this design violates.
+
+### The Open-Closed Principle
+
+To quickly recap, the open-closed principle is summarized as **“Software entities (classes, modules, functions, etc.) [that] should be open for extension, but [are] closed for modification”**. The code for the time source above clearly violates this principle. In its current shape, it supports only a single watch of one type. Imagine supporting other types of watches, for example, one with an analog display. Due to its hard-coded notification, the time source code manifests all sorts of dependencies on all types of watches.
+
+### The Stable Dependencies Principle
+
+During software maintenance or incremental development changes to existing code are normally unavoidable. Even after applying the open-closed principle, the design is closed against certain modifications based upon assumptions by the original designer. It is virtually impossible for a software an entity to be completely closed against all kinds of changes. The stable dependencies principle tries to isolate the impact of changes to existing code by making the recommendation that software entities should **“depend in the direction of stability”**.
+
+In the initial approach, the watch itself fetched the time from the time source. For the stable dependencies principle, this was a better choice. A time source is typically
+
+-   **Highly cohesive unit**
+-   **The more stable entity**
+
+Simply encapsulating it in a proper abstraction, which hides the system-specific details, makes it a good candidate to be packaged in a reusable lower-level domain layer.
+
+By having the time-source depend upon the higher-level digital watch, we violate the stable dependencies principle. This violation manifests itself by making the code for the watch difficult to update. Changes may have an impact on the code of the time source itself!
+
+Combining the dependency direction of the first approach with the notification mechanism of the second would make up an ideal design and design pattern **Observer** provides the extra level of indirection necessary to achieve the benefits of both solutions without suffering from any of their drawbacks.
+
+## Observer Pattern
+
+The Observer pattern may serve as a tool for making a design follow the open-closed principle. _**Design Patterns**_ captures the intent of Observer as **“Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically”**.
+
+Applying the Observer pattern to our example, extended with a second type of watch, the **“dependents”** are the different watches. _**Design Patterns**_ defines the role played by `TimeSource` as a **“concrete subject”**, the object whose state changes should trigger a notification and update of the dependents, i.e. Observers.
+

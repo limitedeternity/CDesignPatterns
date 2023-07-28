@@ -1,0 +1,18 @@
+## Why do you need patterns in C?
+
+The pattern format has gained tremendous popularity as a format for capturing experience. We can attribute this popularity to the unique success of the book _**Design Patterns**_ by the **Gang of Four**. _**Design Patterns**_ served the coding community by popularizing patterns. However, the book also led many developers to believe that patterns are limited to object orientation.
+
+Today’s patterns aren’t limited to design, but there is also a broad range of:
+
+- Patterns for software analysis.
+- Patterns for organizations.
+- Patterns for testing.
+
+When it comes to the actual implementations of patterns, most patterns are still described in the context of an object-oriented design. Most pattern literature is limited to design patterns in **Java**, **C#**, **Smalltalk**, and other popular object-oriented languages. The **C** language is sadly absent in most pattern literature.
+
+Given the remaining popularity of C,
+
+- Where are the books targeting the unique implementation constraints and techniques for the language?
+- Isn’t it possible to use patterns in the development of C programs or doesn’t it add any benefits?
+
+The purpose of this course is to answer those questions. This course conveys the idea of how to apply known patterns naturally in C. We discuss the actual implementation techniques and trade-offs.

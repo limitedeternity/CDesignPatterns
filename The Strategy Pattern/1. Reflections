@@ -1,0 +1,19 @@
+## Why do we need the Strategy pattern?
+
+-   This pattern is fundamental.
+-   It’s a shift in a mindset. Applying Strategy shifts the focus of an algorithm from "how" to "what".
+-   Rather than controlling how a function performs its task, we parameterize it with a high-level behavior encapsulating what to do.
+
+Within a software design, excessive coupling is one of the most damaging properties of a program. And the worst form of coupling is control coupling. In the degenerate case of control coupling, the client passes a flag to some function to control its behavior. It’s a common coding style that leads to excessive conditional logic. Excessive conditional logic implies complexity in itself.
+
+Control coupling, as discussed, breaks the **encapsulation**.
+
+-   Suddenly, the client is exposed to the inner workings of a function it’s using. Modules melt together and barriers get torn down. Such code is often hard to extend.
+-   We tend to encounter the most bugs when features interact.
+
+That is precisely the case with the control coupling approach. Instead, a good design separates different features and variations. It lets them vary independently (features often have different change rates). Good design is about orthogonality.
+
+Strategy isn’t an object-oriented pattern. One of the main problems with  _**Design Patterns**_  is its prominent use of class diagrams. Open any pattern in the book. The first thing we see is a class diagram. Often, we see a similar diagram repeated in the  **“Structure”**  section. This has led many developers to confuse the diagram with the actual pattern. It’s not. At best, it’s one possible way to implement the pattern in a certain language. Nothing more. A pattern is both a  **Dynamic**  and a  **Generative entity**.
+
+Depending on the context, the applications of a pattern may look radically different each time.
+

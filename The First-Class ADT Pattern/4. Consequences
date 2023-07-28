@@ -1,0 +1,30 @@
+## Copy semantics
+
+As users only use a handle, which we have declared as a pointer to the ADT, the issue of copy semantics boils down to pointer assignment. While efficient in terms of runtime performance, copies of a handle have to be managed properly. The handles are only valid as long as the real object exists.
+
+In case we want to copy the real object and thus create a new, unique instance of the ADT, we have to define an explicit copy operation.
+
+## Dependencies managed
+
+With the interface `Customer.h`, the C language guarantees us that the internals of the data structure are encapsulated in the implementation with no possibility for users to access the internals of the data structure.
+
+Using the First-Class ADT, the compile-time dependencies on internals are removed as well. All changes of the implementation are limited to the implementation. As long as no functions are added or removed from the interface, the modules do not need to be re-compiled.
+
+## Consequences
+
+The main consequences of applying the First-Class ADT pattern are:
+
+- _**Improved encapsulation**_: With the First-Class ADT pattern, we decouple interface and implementation, following the recommended principle of programming towards an interface rather than implementation.
+- _**Loose coupling**_: As illustrated above, all dependencies on the internals of the data structure are eliminated from client code.
+- _**Controlled construction and destruction**_: The First-Class ADT pattern gives us full control over the lifetime of objects, providing us with the possibility to ensure that all objects are created in a valid state. Similarly, we can ensure proper deallocation of all elements of the object, provided that client code behaves correctly and calls the defined `destroy` function.
+- _**Extra level of indirection**_: There is a slight performance cost involved. The pattern implies one extra level of indirection on all operations on the data structure.
+-  _**Increased dynamic memory usage**_: In problem domains where there may be potentially many instances of a quantity unknown at compile-time, we cannot use a static allocation strategy. As a consequence, the usage of dynamic memory tends to increase when applying the First-Class ADT pattern.
+
+## Examples of use
+
+This pattern may prove useful for cross-platform development. For example, there are differences between Berkeley Sockets and the Winsock library when developing applications for network communication.
+
+The First-Class ADT pattern provides the tool for abstracting away those differences for users. The trick is to provide two different implementations of the ADT, both sharing the same interface.
+
+Also, First-Class ADT may be used to implement many fundamental data structures such as linked lists and queues.
+

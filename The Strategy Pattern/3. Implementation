@@ -1,0 +1,154 @@
+## The open-closed principle
+
+Although mainly seen in the context of object-oriented literature, the open-closed principle defines properties attractive in the context of C too. The principle is summarized as **“Software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification.”**
+
+**According to the open-closed principle:**
+
+-   Extending the behavior of an ideal module is achieved by adding code instead of changing the existing source.
+-   Following this principle minimizes the risk of introducing bugs in existing, tested code and typically raises the quality of the design by introducing loose coupling.
+-   Unfortunately, it is virtually impossible to design a module so that it is closed against all kinds of changes.
+-   Even trying to design software in such a way would overcomplicate the design far beyond suitability.
+-   Identifying which modules to close and what changes to close them against requires experience and a good understanding of the problem domain.
+
+In the example used in this chapter, it would be suitable to close the customer module against changes to the customer categories. Identifying a pattern that lets us redesign the code above in this respect seems like an attractive idea.
+
+## Pattern details
+
+The design pattern Strategy provides a way to follow and reap the benefits of the open-closed principle. _**Design Patterns**_ defines the intent of Strategy as **“defining a family of algorithms, encapsulating each one, and making them interchangeable. Strategy lets the algorithm vary independently from clients that use it.”**
+
+Using this pattern, the interface for calculating price will adhere to the **open-closed principle**; it is possible to add or remove categories without modifying the existing calculation algorithms or the Customer itself.
+
+## Implementation mechanism
+
+When implementing the Strategy pattern in C without language support for **polymorphism** and **inheritance**, we must find an alternative to the object-oriented features for the abstraction.
+
+This problem is almost identical to that when implementing the State pattern in C, indicating that we should use the same mechanism, namely pointers to functions. The possibility to specify pointers to functions proves to be an efficient technique for implementing dynamic behavior.
+
+> CustomerStrategy.h
+```c
+#pragma once
+
+typedef double (*CustomerPriceStrategy)(double amount, double shipping);
+```
+
+-   Different strategies are implemented as functions following the signature specified by the interface.
+-   The privileges of each customer category, the concept that varies, are now encapsulated within their concrete strategy.
+-   Depending on the complexity and the cohesion of the concrete strategies, the source code may be organized as either one strategy per compilation unit or by gathering all supported strategies in a single compilation unit.
+-   For the simple strategies used in this example, the latter approach has been chosen.
+
+> CustomerCategories.h
+```c
+#pragma once
+
+double bronzePriceStrategy(double amount, double shipping);
+double silverPriceStrategy(double amount, double shipping);
+double goldPriceStrategy(double amount, double shipping);
+```
+
+> CustomerCategories.c
+```c
+#include "CustomerCategories.h"
+
+double bronzePriceStrategy(double amount, double shipping)
+{
+	return amount * 0.98 + shipping;
+}
+
+double silverPriceStrategy(double amount, double shipping)
+{
+	return amount * 0.95 + shipping;
+}
+
+double goldPriceStrategy(double amount, double /*shipping*/)
+{
+	/* Free shipping for gold customers. */
+	return amount * 0.90;
+}
+```
+
+By using the strategies, the context code now delegates the calculation to the strategy associated with the customer.
+
+> Customer.c
+```c
+#include "CustomerStrategy.h"
+
+/* Other include files omitted... */
+
+struct Customer
+{
+	const char* name;
+	Address address;
+	List orders;
+
+	/* Bind the strategy to Customer: */
+	CustomerPriceStrategy priceStrategy;
+};
+
+void placeOrder(struct Customer* customer, const Order* order)
+{
+	double totalAmount = customer->priceStrategy(order->amount, order->shipping);
+
+	/* More code to process the order... */
+}
+```
+
+-   The code above solves the detected design ills.
+-   As the customer now only depends upon the strategy interface, categories can be added or removed without changing customer’s code and without the risk of introducing bugs into existing strategies.
+-   The remaining open issue with the implementation is to specify how a certain strategy gets bound to the customer.
+
+## Binding the strategy
+
+The strategy may be supplied by the customer’s client and bound to the customer during its creation, or the customer may choose an initial strategy. The former alternative is more flexible as it avoids the need for the customer to depend upon a concrete strategy. The code below illustrates this approach, using a customer implemented as a **First-Class ADT.**
+
+> Customer.c
+```c
+CustomerPtr createCustomer(
+	const char* name,
+	const Address* address,
+	CustomerPriceStrategy priceStrategy)
+{
+	CustomerPtr customer = malloc(sizeof* customer);
+
+	if (NULL != customer)
+	{
+		/* Bind the initial strategy supplied by the client. */
+		customer->priceStrategy = priceStrategy;
+		customer->name = name;
+		customer->address = *address;
+		
+		/* Initialize the other attributes of the customer here. */
+	}
+
+	return customer;
+}
+```
+
+> Specifying the binding, Client.c
+```c
+#include "Customer.h"
+#include "CustomerCategories.h"
+
+/*
+Client code illustrating the binding of a strategy:
+*/
+static CustomerPtr createBronzeCustomer(
+	const char* name,
+	const Address* address)
+{
+	return createCustomer(name, address, bronzePriceStrategy);
+}
+```
+
+Depending on the problem at hand, a context may be re-bound to another strategy. For example, as a customer gets promoted to the silver category, that customer should get associated with the `silverPriceStrategy`. Using the technique of pointers to functions, a run-time change of strategy simply implies pointing to another function.
+
+> Rebinding a strategy, Customer.c
+```c
+void changePriceCategory(CustomerPtr customer, CustomerPriceStrategy newPriceStrategy)
+{
+	assert(NULL != customer);
+	customer->priceStrategy = newPriceStrategy;
+}
+```
+
+Yet another alternative is to avoid the binding altogether and let the client pass the different strategies to the context in each function invocation. This alternative may be suitable in case the context doesn’t have any state memory. In our example, which uses first-class objects, the opposite is true. The natural abstraction is to associate the customer with a price strategy, as illustrated above.
+

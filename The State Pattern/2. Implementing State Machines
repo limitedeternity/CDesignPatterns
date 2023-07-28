@@ -1,0 +1,121 @@
+## Different Strategies for Implementing State Machines
+
+Every non-trivial program passes through several different states during its lifecycle. Describing this lifecycle as a finite state machine is a simple and useful abstraction. This lesson investigates different strategies for implementing state machines. The goal is to identify mechanisms that let the code communicate the intent of expressing the problem as a finite state machine.
+
+### Traditional Solution with Conditionals
+
+Consider a simple, digital stop-watch. In its most basic version, it has two states: started and stopped. A traditional and direct way to implement this behavior in C is with conditional logic in the shape of **switch/case** statements and **if-else** chains.
+
+In this example, the digital stop-watch is implemented as a First-Class ADT.
+
+```c
+typedef enum
+{
+	stopped,
+	started
+} State;
+
+struct DigitalStopWatch
+{
+	/* Let a variable hold the state of our object. */
+	State state;
+	TimeSource source;
+	Display watchDisplay; 
+}; 
+
+void startWatch(DigitalStopWatchPtr instance) 
+{ 
+	switch (instance->state) 
+	{
+		case started:
+			/* Already started -> do nothing. */ 
+			break;
+		case stopped:
+			instance->state = started;
+			break;
+		default:
+			error("Illegal state");
+			break; 
+	}
+} 
+
+void stopWatch(DigitalStopWatchPtr instance)
+{
+	switch (instance->state)
+	{
+		case started:
+			instance->state = stopped;
+			break; 
+		case stopped:
+			/* Already stopped -> do nothing. */ 
+			break; 
+		default:
+			error("Illegal state");
+			break;
+	}
+}
+```
+
+This is a superficially simple solution. While the coding construct may be simple, the approach introduces several potential problems:
+
+-   **It doesn’t scale:**  In large state machines, the code may stretch over page after page of nested conditional logic. Imagine the true maintenance nightmare of changing large, monolithic segments of conditional statements
+-   **Duplication:**  The conditional logic tends to be repeated, with small variations, in all functions that access the state variable. As always, duplication leads to error-prone maintenance. For example, simply adding a new state implies changing several functions.
+-   **No separation of concerns:**  When using conditional logic for implementing state machines, there is no clear separation between the code of the state machine itself and the actions associated with the various events. This makes the code hide the original intent (abstracting the behavior as a finite state machine), thus making the code less readable.
+
+### A Table-based Solution
+
+The second traditional approach to implement finite state machines is through transition tables. By using this technique, our original example now reads as follows:
+
+```c
+typedef enum
+{
+	stopped,
+	started
+} State; 
+
+typedef enum
+{
+	stopEvent,
+	startEvent
+} Event; 
+
+#define NO_OF_STATES 2 
+#define NO_OF_EVENTS 2 
+
+static State TransitionTable[NO_OF_STATES][NO_OF_EVENTS] =
+{
+	{ stopped, started },
+	{ stopped, started }
+}; 
+
+void startWatch(DigitalStopWatchPtr instance)
+{
+	const State currentState = instance->state;
+	instance->state = TransitionTable[currentState][startEvent];
+}
+
+void stopWatch(DigitalStopWatchPtr instance)
+{
+	const State currentState = instance->state;
+	instance->state = TransitionTable[currentState][stopEvent];
+}
+```
+
+Choosing a transition table over conditional logic solved the previous problems:
+
+-   **Scales well:**  Independent of the size of the state machine, the code for a state transition is just one simple table-lookup.
+-   **No duplication:**  Without the burden of repetitive switch/case statements, modification comes easily. The change is limited to the transition table; all code for the state handling itself goes unchanged.
+-   **Easy to understand:**  A well-structured transition table serves as a good overview of the complete lifecycle.
+
+As appealing as table-based state machines may seem at first, they have a major drawback:
+
+-   It is very hard to add actions to the transitions defined in the table. For example, the watch would typically invoke a function that starts to tick milliseconds upon a transition to state started.
+-   As the state transition isn’t explicit, we must add conditional logic to ensure that the tick function only invokes as the transition succeeds.
+-   In combination with conditional logic, the initial benefits of the table-based solution soon decrease together with the quality of the design.
+
+Other approaches involve replacing the simple enumerations in the table with pointers to functions specifying the entry actions.
+
+-   Unfortunately, the immediate hurdle to map state transitions to actions in a table-based solution is that the functions typically need different arguments.
+-   This problem is possible to solve, but the resulting design is lacking in  **readability**  and  **cohesion**. The design typically disregards type safety or passes around unused parameters. None of these alternatives seem attractive.
+
+Transition tables have their use, but when actions have to be associated with state transitions, the  **State**  pattern provides a better alternative.

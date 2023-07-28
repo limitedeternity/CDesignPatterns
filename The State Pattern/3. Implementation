@@ -1,0 +1,230 @@
+## State Pattern
+
+According to _**Design Patterns**_  **"the State pattern models state-specific behavior, whereas the table-driven approach focuses on defining state transitions"**. 
+
+The main idea captured in the state pattern is that we should represent each state as an object of its own. A state transition simply means changing the reference in the context from one of the concrete states to the other.
+
+## Implementation Mechanism
+
+Returning to our example, we see that we have to switch functions upon each state transition. Luckily, the C language supplies one powerful feature, pointers to functions, that serves our needs perfectly by letting us change the behavior of an object at run-time. Using this mechanism, the interface of the states would look as follows:
+
+* `WatchStateInternal.h`:
+```c
+#pragma once
+
+/* Simplify the code by using typedefs for the function pointers. */
+typedef void (*EventStartFunc)(WatchStatePtr state);
+typedef void (*EventStopFunc)(WatchStatePtr state);
+
+struct WatchState
+{
+	EventStartFunc start;
+	EventStopFunc stop;
+};
+```
+
+Next, we need to provide default (fallback) implementations of these state transitions:
+
+* `WatchState.h`:
+```c
+#pragma once
+
+/* An incomplete type for the state representation itself. */
+typedef struct WatchState* WatchStatePtr;
+
+void defaultImplementation(WatchStatePtr state);
+```
+
+* `WatchState.c`:
+```c
+#include "WatchState.h"
+#include "WatchStateInternal.h"
+
+/*
+Provide the default implementations:
+*/
+
+static void defaultStop(WatchStatePtr state)
+{
+	/* We'll get here if the stop event isn't supported in the concrete state. */
+}
+
+static void defaultStart(WatchStatePtr state)
+{
+	/* We'll get here if the start event isn't supported in the concrete state. */
+}
+
+void defaultImplementation(WatchStatePtr state)
+{
+	state->start = defaultStart;
+	state->stop = defaultStop;
+}
+```
+
+### Concrete States
+
+The default implementation above completes the interface of the states. The interface of each state itself is minimal; all we have to do is to declare an entry function for the interface of a concrete state. 
+
+* `StartedState.h`:
+```c
+#pragma once
+#include "WatchState.h"
+
+void transitionToStarted(WatchStatePtr state);
+```
+
+* `StoppedState.h`:
+```c
+#pragma once
+#include "WatchState.h"
+
+void transitionToStopped(WatchStatePtr state);
+```
+
+The responsibility of the entry functions is to set the pointers in the passed `WatchState` structure to point to the functions specifying the behavior of the particular state. As we can utilize the default implementation, the implementation of the concrete states is straightforward; each concrete state only specifies the events of interest in that state.
+
+* `StartedState.c`:
+```c
+#include "StartedState.h"
+#include "WatchStateInternal.h"
+#include "WatchState.h"
+
+/* Possible transition to the following states: */
+#include "StoppedState.h"
+
+static void stopWatch(WatchStatePtr state)
+{
+	transitionToStopped(state);
+}
+
+void transitionToStarted(WatchStatePtr state)
+{
+	/* Initialize with the default implementation before specifying the events to be handled in the started state. */
+	defaultImplementation(state);
+	state->stop = stopWatch;
+}
+```
+
+* `StoppedState.c`:
+```c
+#include "StoppedState.h"
+#include "WatchStateInternal.h"
+#include "WatchState.h"
+
+/* Possible transition to the following states: */
+#include "StartedState.h"
+
+static void startWatch(WatchStatePtr state)
+{
+	transitionToStarted(state);
+} 
+
+void transitionToStopped(WatchStatePtr state)
+{
+	/* Initialize with the default implementation before specifying the events to be handled in the started state. */
+	defaultImplementation(state);
+	state->start = startWatch;
+}
+```
+
+### Client Code
+
+The reward for the struggle so far comes when implementing the context (i.e., the client of the state machine). Once we set the initial state, all the client code has to do is delegate the requests to the state.
+
+* `DigitalStopWatch.h`:
+```c
+#pragma once
+#include "WatchState.h"
+
+/*
+A pointer to an incomplete type (hides the implementation details).
+*/
+typedef struct DigitalStopWatch* DigitalStopWatchPtr;
+
+/*
+A watch is implemented using the First-Class ADT pattern.
+*/
+
+DigitalStopWatchPtr createWatch(void);
+void destroyWatch(DigitalStopWatchPtr instance);
+
+void startWatch(DigitalStopWatchPtr instance);
+void stopWatch(DigitalStopWatchPtr instance);
+
+WatchStatePtr getWatchState(DigitalStopWatchPtr instance);
+```
+
+* `DigitalStopWatch.c`:
+```c
+#include <stdlib.h>
+
+#include "DigitalStopWatch.h"
+
+/* We need to know about or initial state: */
+#include "StoppedState.h"
+
+#include "WatchStateInternal.h"
+
+struct DigitalStopWatch
+{
+	struct WatchState state;
+	/* The struct can have more memebers */
+};
+
+DigitalStopWatchPtr createWatch(void)
+{
+	DigitalStopWatchPtr instance = malloc(sizeof *instance);
+
+	if (NULL != instance)
+	{
+		/* Specify the initial state. */
+		transitionToStopped(&instance->state);
+		/* Initialize the other attributes here.*/
+	}
+ 
+	return instance;
+}
+
+WatchStatePtr getWatchState(DigitalStopWatchPtr instance)
+{
+	if (NULL != instance) { return &instance->state; }
+} 
+
+void destroyWatch(DigitalStopWatchPtr instance)
+{
+	if (NULL != instance) { free(instance); }
+}
+
+void startWatch(DigitalStopWatchPtr instance)
+{
+	if (NULL != instance) { instance->state.start(&instance->state); }
+}
+
+void stopWatch(DigitalStopWatchPtr instance)
+{
+	if (NULL != instance) { instance->state.stop(&instance->state); }
+}
+```
+
+### A Debug Aid
+
+We can extend the state structure with a string holding the name of the actual state to ease debugging:
+
+```c
+void transitionToStopped(WatchStatePtr state)
+{
+	defaultImplementation(state);
+	state->name = "Stopped";
+	state->start = startWatch;
+}
+```
+
+Utilizing this extension, it becomes possible to provide an exact diagnostic in the default implementation. Returning to our implementation of `WatchState.c`, the code now looks like this:
+
+```c
+static void defaultStop(WatchStatePtr state)
+{
+	/* We'll get here if the stop event isn't supported in the concrete state. */
+	logUnsupportedEvent("Stop event", state->name);
+}
+```

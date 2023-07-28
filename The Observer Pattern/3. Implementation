@@ -1,0 +1,156 @@
+## Implementation Mechanism
+
+To decouple the subject from its concrete observers and still enable the subject to notify them, each observer must correspond to a unique instance. The First-Class ADT pattern provides a way to realize this. However, as seen from the subject, all observers must be abstracted as one general type sharing a common interface. In the C language, without language support for inheritance, generality is usually spelled `void*`. We can convert any pointer to an object to `void*` and back to its original type again without losing information. This rule makes a common interface possible.
+
+> TimeObserver.h
+```c
+#pragma once
+
+typedef void(*ChangeTimeNotification)(void* instance, const SystemTime* newTime);
+
+typedef struct
+{
+	void* instance;
+	ChangeTimeNotification notification;
+} TimeObserver;
+```
+
+-   The interface above declares a pointer to a function, which proves to be an efficient technique for implementing dynamic behavior
+-   A concrete observer attaches itself, together with a pointer to a function, at the subject. As the subject changes, it notifies the observer through the attached function.
+
+By using `void*` as abstraction, we trade type-safety for flexibility. This technique also makes the programmer responsible for converting the observer back to its original type.
+
+A conversion back to another type than the original may have disastrous consequences. Although not very experienced in C programming, Franz Kafka provided a good example of such behavior: **“When Gregor Samsa woke up one morning from unsettling dreams, he found himself changed in his bed into a monstrous vermin”**.
+
+Gregor Samsa wasn’t type-safe. The `TimeObserver` structure was introduced to guard against erroneous conversions and maintain the binding between the observer and the function pointer. The implicit type conversion is encapsulated within the observer, as illustrated in the code below.
+
+> DigitalStopWatch.c
+```c
+#include "DigitalStopWatch.h"
+#include "TimeObserver.h"
+#include "TimeSubject.h"
+
+struct DigitalStopWatch
+{
+	Display watchDisplay;
+	/* Other attributes of the watch. */
+};
+
+/* Implementation of the function required by the TimeObserver interface. */
+static void changedTime(void* instance, const SystemTime* newTime)
+{
+	DigitalStopWatchPtr digitalWatch = instance;
+	assert(NULL != digitalWatch);
+
+	updateDisplay(digitalWatch, newTime)
+}
+```
+
+Before an observer can get any notifications, it has to register for them.
+
+> TimeSubject.h
+```c
+#pragma once
+#include "TimeObserver.h"
+
+void attach(const TimeObserver* observer);
+void detach(const TimeObserver* observer);
+```
+
+These functions are implemented by the concrete subject, the `TimeSource`, which has to keep track of all attached observers. The example below uses a linked list for that task. Attaching an observer corresponds to adding a copy of the given `TimeObserver` representation to the list. Similarly, the node in the list corresponding to the given `TimeObserver` will be removed upon a call to detach. That observer will no longer receive any notifications from the subject. The code fragments below illustrate this mechanism.
+
+> TimeSource.c
+```c
+#include "TimeSubject.h"
+
+struct ListNode
+{
+	TimeObserver item;
+	struct ListNode* next;
+}; 
+
+static SystemTime currentTime;
+struct ListNode *head = NULL;
+
+/* Local helper functions for managing the linked-list */
+static void appendToList(const TimeObserver* observer)
+{
+	struct ListNode *link = (struct ListNode*) malloc(sizeof *link);
+	assert(NULL != link);
+	
+	link->item = *observer;
+	link->next = head;
+	head = link;
+}
+
+static void removeFromList(const TimeObserver* observer)
+{
+	struct ListNode *current = head;
+	struct ListNode *previous = NULL;
+
+	if (NULL != current)
+	{
+		head = current->next;
+		free(current);
+		return;
+	}
+	
+	while (NULL != current && current->item.instance != observer->instance)
+    {
+    	previous = current;
+      	current = current->next;
+    }
+
+	if (NULL == current)
+	{
+		return;
+	}
+
+	previous->next = current->next;
+	free(current);
+}
+
+/* Might as well just use concurrent linked list. */
+static pthread_mutex_t notify_lock;
+
+/* Implementation of the TimeSubject interface. */ 
+void attach(const TimeObserver* observer)
+{
+	assert(NULL != observer);
+	pthread_mutex_lock(&notify_lock);	
+	appendToList(observer);
+	pthread_mutex_unlock(&notify_lock);
+}
+
+void detach(const TimeObserver* observer)
+{
+	assert(NULL != observer);
+	pthread_mutex_lock(&notify_lock);
+	removeFromList(observer);
+	pthread_mutex_unlock(&notify_lock);
+}
+
+/* Implementation of the original responsibility of the TimeSource (code for initialization, etc omitted). */ 
+void msTick()
+{
+	struct ListNode* node = head;
+	
+	/* Invoke a function encapsulating the knowledge about time representation. */
+	currentTime = calculateNewTime();
+
+	/* Ensure that no changes are done to the subject during notification. */
+	pthread_mutex_lock(&notify_lock);
+	
+	/* Walk through the linked-list and notify every observer that another millisecond passed. */
+	while (NULL != node)
+	{
+		TimeObserver* observer = &node->item;
+		observer->notification(observer->instance, &currentTime);
+		node = node->next;
+	}
+
+	/* All observers notified, allow changes again. */
+	pthread_mutex_unlock(&notify_lock);
+}
+```
+

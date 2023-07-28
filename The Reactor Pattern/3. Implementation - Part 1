@@ -1,0 +1,123 @@
+## The Reactor pattern
+
+“**The Reactor architectural pattern allows event-driven applications to demultiplex and dispatch service requests that are delivered to an application from one or more clients**”.
+
+The roles of the involved participants are:
+
+-   **EventHandler**: An EventHandler defines an interface to be implemented by modules reacting to events. Each EventHandler owns its Handle.
+-   **Handle**: An efficient implementation of the  **Reactor**  pattern requires an OS that supports handles (examples of Handles include system resources like files, sockets, and timers).
+-   **DiagnosticsServer**  and  **DiagnosticsClient**: These two are concrete event handlers, each one encapsulating one responsibility. To be able to receive event notifications, the concrete event handlers have to register themselves at the Reactor.
+-   **Reactor**: The Reactor maintains registrations of EventHandlers and fetches the associated Handles. The Reactor waits for events on its set of registered Handles and invokes the corresponding EventHandler as a Handle indicates an event.
+
+## Event Detection
+
+In its description of **Reactor**, _**Pattern-Oriented Software Architecture**_ defines a further collaborator, the **Synchronous Event Demultiplexer**. The Reactor calls the Synchronous Event Demultiplexer to wait for events to occur on the registered Handles.
+
+The operating system often provides a Synchronous Event Demultiplexer. This example will use `poll()`, which works with any descriptor. The `select()` and Win32’s `WaitForMultipleObjects()` functions are also available on common operating systems.
+
+## Implementation Mechanism
+
+The collaboration between an EventHandler and the Reactor is similar to the interaction between an observer and its subject in the design pattern **Observer**. This relationship between these two patterns indicates that the techniques used to realize **Observer** in C may serve equally well to implement the **Reactor**.
+
+To decouple the Reactor from its event handlers and still enable the Reactor to notify them, each concrete event handler must correspond to a unique instance. In our **Observer** implementation, we use the First-Class ADT pattern to solve this problem. As all concrete event handlers have to be abstracted as one, general type realizing the EventHandler interface, `void*` is chosen as “**the general type**” to be registered at the Reactor. These decisions enable a common interface for all event handlers:
+
+> EventHandler.h
+```c
+#pragma once
+
+/* The type of a handle is system specific --
+   this example uses UNIX I/O handles, which are
+   plain integer values. */
+typedef int Handle
+
+/* All interaction from Reactor to an event
+   handler goes through function pointers with the
+   following signatures: */
+typedef Handle(*getHandleFunc)(void* instance);
+typedef void(*handleEventFunc)(void* instance);
+
+typedef struct
+{
+	void* instance;
+	getHandleFunc getHandle;
+	handleEventFunc handleEvent;
+} EventHandler;
+```
+
+Having this interface in place allows us to declare the registration functions of the Reactor.
+
+> Reactor.h
+```c
+#pragma once
+#include "EventHandler.h"
+
+void Register(EventHandler* handler);
+void Unregister(EventHandler* handler);
+```
+
+The application specific services have to implement the `EventHandler` interface and register themselves using the interface above to react to events.
+
+> DiagnosticsServer.c
+```c
+#include "EventHandler.h"
+
+struct DiagnosticsServer
+{
+	Handle listeningSocket;
+	EventHandler eventHandler;
+	/* Other attributes here... */
+};
+
+/* Implementation of the EventHandler interface. */
+
+static Handle getServerSocket(void* instance)
+{
+	const DiagnosticsServerPtr server = instance;
+	return server->listeningSocket;
+}
+
+static void handleConnectRequest(void* instance)
+{
+	DiagnosticsServerPtr server = instance;
+	/* The server gets notified as a new connection
+	   request arrives. Add code for accepting the
+       new connection and creating a client here... */
+}
+
+DiagnosticsServerPtr createServer(unsigned int tcpPort)
+{
+	DiagnosticsServerPtr newServer = malloc(sizeof* newServer);
+ 
+	if (NULL != newServer)
+	{
+		/* Code for creating the server socket here.
+		   The real code should look for a failure, etc. */
+		newServer->listeningSocket = createServerSocket(tcpPort);
+
+		/* Successfully created => register the listening socket: */
+		newServer->eventHandler.instance = newServer;
+		newServer->eventHandler.getHandle = getServerSocket;
+		newServer->eventHandler.handleEvent = handleConnectRequest;
+ 
+		Register(&newServer->eventHandler);
+	}
+
+	return newServer;
+}
+
+void destroyServer(DiagnosticsServerPtr server)
+{
+	/* Before deleting the server we have to
+	   unregister at the Reactor. */
+	Unregister(&server->eventHandler);
+	close(server->listeningSocket);
+	free(server);
+}
+```
+
+## Reactor registration strategy
+
+When implementing the concrete event handlers as a  **First-Class ADT**, the functions for constructing and destroying the  **ADT**  serve well to encapsulate the registration handling. The advantage is the combination of loose dependencies with information hiding as a client does not need to know about interactions with the Reactor.
+
+Another attractive property is that the server’s internals are encapsulated within the  `getServerSocket`  function. Sure, we are giving the Reactor a way to fetch it, but the Reactor is considered a well-trusted collaborator and we are actively giving it access by registering our event handler. There is no way for any other module to mistakenly fetch the handle and corrupt the associated resource.
+

@@ -1,0 +1,172 @@
+## Reactor Implementation
+
+The details of Reactor implementation are platform-specific as they depend upon the available synchronous event demultiplexers. In case the operating system provides more than one synchronous event demultiplexer (e.g. `select()` and `poll()`), we can implement a concrete Reactor for each of them and then make the linker select the implementation. This technique is referred to as link-time **polymorphism**.
+
+Independent of the system-specific demultiplexing mechanism, a Reactor has to maintain a collection of registered, concrete event handlers. In its simplest form, this collection will simply be an array. When we know the maximum number of clients in advance, this approach serves well.
+
+> PollReactor.c
+```c
+#include "Reactor.h"
+#include <poll.h>
+
+/* Other include files omitted... */
+
+/* Bind an event handler to the struct used to interface poll(). */
+typedef struct
+{
+	EventHandler handler;
+	struct pollfd fd;
+} HandlerRegistration;
+
+static HandlerRegistration registeredHandlers[MAX_NO_OF_HANDLES];
+
+/* Add a copy of the given handler to the first free position in registeredHandlers. */
+static void addToRegistry(EventHandler* handler);
+
+/* Identify the event handler in the registeredHandlers and remove it. */
+static void removeFromRegistry(EventHandler* handler);
+
+/* Implementation of the Reactor interface used for registrations.*/
+
+void Register(EventHandler* handler)
+{
+	assert(NULL != handler);
+	
+	if (!addToRegistry(handler))
+	{
+		assert(false && "No more registrations possible");
+	}
+}
+
+void Unregister(EventHandler* handler)
+{
+	assert(NULL != handler);
+	
+	if (!removeFromRegistry(handler))
+	{
+		assert(false && "Event handler not registered");
+	}
+}
+```
+
+## Invoking the Reactor
+
+The reactive event loop is the core of the Reactor and its responsibilities are to control the demultiplexing and dispatch the detected events to the registered, concrete event handlers. The event loop is contained within the `HandleEvents()` function and is typically invoked by the `main()` function.
+
+> Main.c
+```c
+int main(void)
+{
+	/* Create a server and enter an eternal event loop, watching the Reactor do the rest. */
+
+	const unsigned int serverPort = 7000;
+	DiagnosticsServerPtr server = createServer(serverPort);
+
+	if (NULL == server)
+	{
+		assert(false && "Failed to create the server");
+	}
+
+	/* Enter the eternal reactive event loop. */
+	for (;;)
+	{
+		HandleEvents();
+	}
+}
+```
+
+Before investigating the implementation, which header file should provide the declaration of the `HandleEvents()` function? Unfortunately, adding it to the `Reactor.h` would make that interface less cohesive because the registration functions model a different responsibility than the event loop. A solution is to create a separate interface for the event loop. This interface is intended solely for the compilation unit invoking the event loop.
+
+> ReactorEventLoop.h
+```c
+#pragma once
+
+void HandleEvents(void);
+```
+
+Despite its simplicity, this separation solves the cohesiveness problem and shields clients from functions they do not use. This technique of providing separate interfaces to separate clients is known as the interface segregation principle.
+
+## Implementing the Event Loop
+
+With the interface in place, we can move on and implement the event loop itself. The listing below extends `PollReactor.c`.
+
+> PollReactor.c
+```c
+#include "ReactorEventLoop.h"
+/* The code from previous listing... */
+
+#ifndef INFTIM
+#define INFTIM -1
+#endif
+
+/* Add a copy of all registered handlers to the given array. */
+static size_t buildPollArray(struct pollfd* fds);
+
+/* Identify the event handler corresponding to the given descriptor in the registeredHandlers. */
+static EventHandler* findHandler(int fd);
+
+static void dispatchSignalledHandles(const struct pollfd* fds, size_t noOfHandles)
+{
+	/* Loop through all handles.
+       Upon detection of a handle signaled by poll,
+	   its corresponding event handler is fetched
+	   and invoked. */
+
+	for (size_t i = 0; i < noOfHandles; ++i)
+	{
+		/* Detect all signalled handles and invoke their corresponding event handlers. */
+		if ((POLLRDNORM | POLLERR) & fds[i].revents)
+		{
+			EventHandler* signalledHandler = findHandler(fds[i].fd);
+
+			if (NULL != signalledHandler)
+			{
+				signalledHandler->handleEvent(signalledHandler->instance);
+			}
+		}
+	}
+}
+
+/* Implementation of the reactive event loop. */
+void HandleEvents(void)
+{
+	/* Build the array required to interact with poll(). */
+	struct pollfd fds[MAX_NO_OF_HANDLES] = {0};
+	const size_t noOfHandles = buildPollArray(fds);
+
+	/* Invoke the synchronous event demultiplexer.*/
+	if (0 < poll(fds, noOfHandles, INFTIM))
+	{
+		/* Identify all signalled handles and
+		   invoke the event handler associated with
+		   each one. */
+		dispatchSignalledHandles(fds, noOfHandles);
+	}
+	else
+	{
+		assert(false && "Poll failure");
+	}
+}
+```
+
+The example above lets each element in the collection maintain a binding between the registered event handler and the structure used to interact with the `poll()`. One alternative approach is to keep two separate lists and ensure consistency between them. _**Pattern-Oriented Software Architecture**_ describes another, system-specific alternative. In a UNIX implementation using `select()`, the **“array is indexed by UNIX I/O handle values, which are unsigned integers ranging from 0 to FD_SETSIZE-1”**
+
+Returning to the example, by grouping the registration and the poll structure together, the array used to interact with `poll()` must be built each time the reactive event loop is entered. When the performance penalty is acceptable, this is probably a better choice as it enables simpler handling of registrations and deregistrations during the event loop.
+
+## Handling new registrations
+
+In our previous lesson, we discussed strategies for managing changed registrations during the notification of observers. The alternative of forbidding changed registrations is, unlike the  **Observer**  pattern, not an option for a  **Reactor**  implementation. In the example used in this article, the server reacts to the notification by creating a new client, which must be registered should it ever be activated again. This leaves only one option for a  **Reactor**  implementer: ensure that it works.
+
+One solution is to maintain a separate array to interact with the synchronous event demultiplexer as illustrated above. This array is never modified in the event loop. However, this solution has the consequence that handles unregistered during the current event loop may be marked as signaled in the separate array. The code has to check for this case and ignore such handles, as illustrated by the function  `dispatchSignalledHandles`.
+
+The code uses the handle alone as an identification. In cases where resources are disposed of and created during the same event loop, there is a possibility that the handle IDs are reused depending on the platform. A signaled handle in the copy might belong to an unregistered event handler, but the new event handler can be invoked erroneously due to a new registration using the recycled handle ID. If this is an issue, we can prevent the problem by introducing further book-keeping data. For example, a second array containing the identities of the handles unregistered during the current event loop makes it possible to identify the case described above and thus avoid it.
+
+## More than one type of event
+
+The above example’s design only allows applications to register for one type of event (read events). The event type is even hardcoded in the Reactor, and it is a simple solution sufficient for applications without any need for further event detection. The  **Reactor**  pattern, however, is not limited to one type of event. The pattern scales well to support different types of events.
+
+_**Pattern-Oriented Software Architecture**_ describes two general strategies for dispatching event notifications:
+
+-   **Single-method interface**: An event handler is notified about all events through one, single function. The type of event (typically in the form of an  `enum`) is passed as a parameter to the function. The disadvantage of this approach is that it sets the stage for conditional logic, which soon gets hard to maintain.
+-   **Multi-method interface**: In this case, the event handler declares separate functions for each supported event (e.g.  `handleRead`,  `handleWrite`,  `handleTimeout`). As the Reactor knows what event occurred, it invokes the corresponding function immediately, thus avoiding placing the burden on the event handler to re-create the event from a parameter.
+

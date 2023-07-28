@@ -1,0 +1,32 @@
+## Criticism of Design Patterns
+
+A common criticism of  _Design Patterns_  is that the patterns only apply to message-passing object-oriented languages like  **C++**  or  **Java**. Many see patterns as workarounds for absent language features. The reasoning behind this viewpoint being that the need for patterns is an indication that a language is somehow less powerful.
+
+There is indeed some truth to this statement.  _Design Patterns_  itself states it clearly:
+
+**“The choice of programming language is important because it influences one’s point of view”**  (Gamma, et al.).
+
+The book goes on to state that its pattern catalog assumes **“Smalltalk/C++ level language features.”** If we'll go for a higher-level language than **C++**, such as **Common Lisp**, we'd find that many design patterns don't apply because:
+
+- Common Lisp has a completely different design space.
+- Many patterns are internalized within the language. The Strategy pattern is internalized within first-class functions and the Visitor pattern through the generic function model in Common Lisp’s object system.
+
+But a language’s power always depends on context. There are problems where Common Lisp, despite its power, isn’t necessarily the best fit. Likewise, there may be cases where C isn’t the best choice. The reasons may be:
+
+- **Technical**
+- **Strategical**
+- **Social**
+- **Cultural**
+
+For us, the interesting part is considering patterns from a C horizon. _Design Patterns_ notes that a procedural language might typically include patterns like encapsulation. First-Class ADT is such a pattern.
+
+## Encapsulation
+
+Encapsulation is a tool for managing complexity. It’s a way to separate aspects of a problem. With encapsulation, we essentially get two views of a design:
+
+- The external behavior
+- The internal details
+
+Depending on our role we can look at the design from either of these perspectives. In a successful design, these two views are orthogonal and may vary independently.
+
+Like any other pattern, it should be used litigiously. It is one to use with care and good taste. We wouldn’t design all our modules as First-Class ADT. Rather, we often find the pattern useful when erecting boundaries between different layers in an application. The First-Class ADT may serve as a technical firewall between different development teams, allowing one to publish an interface while hiding the implementation details. Such a design encourages work on different, but related, parts to proceed in parallel.

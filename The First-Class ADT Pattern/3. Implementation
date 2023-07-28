@@ -1,0 +1,91 @@
+## Definition of a First-Class ADT
+
+**ADT** stands for **Abstract Data Type**. It is a set of values and operations on these values. When we have many unique instances of ADT, it is considered first-class.
+
+It is similar to the interface listed example mentioned in the previous section. However, the data type in the example is not abstract as it fails to hide its implementation details. To make ADT truly abstract, we have to utilize a powerful feature of C: the ability to specify incomplete types.
+
+## Incomplete Types
+
+The C standard (C99) allows us to declare objects of incomplete types in a context where their sizes aren’t needed. In our example implementation, we are interested in the possibility to specify a pointer to an incomplete type.
+
+> Note: **The pointer itself is not of an incomplete type.**
+
+```c
+/* A pointer to an incomplete type (hides the implementation details). */
+typedef struct Customer* CustomerPtr;
+```
+
+Instances of this pointer will serve as a handle for the users of a First-Class ADT. This mechanism enforces the constraint on users to use the provided interface functions because there is no way to access a field in the `Customer` structure.
+
+> Note: **The C language does not allow an incomplete type to be dereferenced.**
+
+As soon as the compiler detects a subsequent specifier with the same tag and a declaration list, the type is considered complete.
+
+```c
+/* The struct Customer is an incomplete type. */
+typedef struct Customer* CustomerPtr; 
+
+/* Internal representation of a customer. */
+struct Customer
+{
+	const char* name;
+	Address address;
+	size_t noOfOrders;
+	Order orders[42];
+};
+/* At this point, struct Customer is considered complete. */
+```
+
+## Object Lifetime
+
+Before we dive into the implementation of the ADT, we need to consider object creation and destruction.  
+As users only get a handle to the object, the responsibility for creating it rests upon the ADT. The straightforward approach is to write one function that encapsulates the allocation of an object and initializes it. Similarly, we define a function for cleaning up the object.
+
+* `Customer.h`:
+```c
+/* Includes and include guards as before... */
+/* A pointer to an incomplete type (hides the implementation details). */
+typedef struct Customer* CustomerPtr;
+
+/* Create a Customer and return a handle to it. */ 
+CustomerPtr createCustomer(const char* name, const Address* address); 
+
+/* Destroy the given Customer object. All handles to it will be invalidated. */
+void destroyCustomer(CustomerPtr customer);
+```
+
+* `Customer.c`:
+```c
+#include <stdlib.h>
+#include "Customer.h"
+
+struct Customer
+{
+	const char* name;
+	Address address;
+	size_t noOfOrders;
+	Order orders[42];
+}; 
+
+CustomerPtr createCustomer(const char* name, const Address* address)
+{
+	CustomerPtr customer = malloc(sizeof *customer);
+	if (customer) {
+		customer->name = name;
+		customer->address = *address;
+	}
+	return customer;
+} 
+
+void destroyCustomer(CustomerPtr customer)
+{
+	if (customer) free(customer);
+}
+```
+
+
+The example above uses the  `malloc`  function to obtain memory.
+
+- In many embedded applications, this may not be an option. However, as we have encapsulated the memory allocation completely, we are free to choose another approach (for example, an object pool).
+- In embedded programming, where the maximum number of needed resources is typically known, the simplest allocator is an array.
+

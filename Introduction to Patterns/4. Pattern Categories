@@ -1,0 +1,28 @@
+## Pattern Categories
+
+This course covers the following patterns:
+
+| **Pattern**     | **Category** | **Purpose**                                   |
+|:---------------:|:------------:|:---------------------------------------------:|
+| First-Class ADT | Idiom        | Improves encapsulation, manages dependencies. |
+| State           | Design       | Models state-specific behavior.               |
+| Strategy        | Design       | Encapsulates families of algorithms, makes a design open-closed. |
+| Observer        | Design       | A notification mechanism between loosely coupled entities. |
+| Reactor         | Architecture | Decouples responsibilities in event-driven applications. |
+| Expressions     | Idiom        | A collection of idioms for expressiveness and robustness. |
+
+## Architectural patterns
+
+Frank Buschmann defines an architectural pattern as “a fundamental structural organization schema for software systems. It provides a set of predefined subsystems, specifies their responsibilities, and includes rules and guidelines for organizing the relationships between them”.
+
+## Design patterns
+
+A design pattern typically affects the subsystem or component level. Most patterns described in this course are from this category, including the patterns drawn from the _**Design Patterns**_.
+
+## Language level patterns
+
+Language level patterns are the lowest level of pattern categories or idioms. A language level pattern is mainly unique to one particular programming language. One simple example is the `strcpy` version from Kernighan and Ritchie.
+
+```c
+void strcpy(char *s, char *t) { while (*s++ = *t++); }
+```

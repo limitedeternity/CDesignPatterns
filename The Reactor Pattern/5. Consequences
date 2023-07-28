@@ -1,0 +1,22 @@
+## Comparison of Reactor and Observer
+
+Although the mechanisms used to implement them are related, there are differences between these two patterns. The main difference is in the notification mechanism. As a Subject changes its state in an **Observer** implementation, all its dependents (observers) are notified. In a **Reactor** implementation, this relationship is one to one – a detected event makes the Reactor to notify exactly one dependent (`EventHandler`).
+
+One typical liability of the **Observer** pattern is that the cohesion of the subject is lowered; besides serving its central purpose, a subject also takes on the responsibility of managing and notifying observers. With this respect, a Reactor differs significantly as its whole raison d’être is to dispatch events to its registered handlers.
+
+## Consequences
+
+The main consequences of applying the **Reactor** pattern are:
+
+-   **The benefits of the single-responsibility principle**: By using the  **Reactor**  pattern, each of the responsibilities above is encapsulated and decoupled from each other. The design results in increased cohesion, which simplifies maintenance and minimizes the risk of feature interaction. As the platform-dependent code for event detection is decoupled from the application logic, unit testing is greatly simplified. It is trivial to simulate events through the `EventHandler` interface.
+-   **The benefits of the open-closed principle**: The design now adheres to the open-closed principle. We can now add new responsibilities to new event handlers without affecting the existing event handlers.
+-   **Unified mechanism for event handling**: Even if the **Reactor** pattern is centered on handles, it may be extended for other tasks. _**Pattern-Oriented Software Architecture**_ describes different strategies for integrating the demultiplexing of **I/O events** with timer handling. Extending the Reactor with timer support is an attractive alternative to typical platform specific solutions based upon signals or threads. This extension builds upon the possibility to specify a timeout value when invoking the synchronous event demultiplexer (for example, `poll()` allows us to specify a timeout with a resolution of milliseconds). Although it will possibly not suit a complex real-time system, a Reactor-based timer mechanism is easier to implement and use than a signal or thread-based solution. It tends to avoid re-entrance problems and race conditions.
+-   **Provides an alternative to multithreading**: We can typically avoid multithreading and blocking operations in the concrete event handlers by using the Reactor pattern. As discussed above, a multithreaded solution does not only add significant complexity; it may also prove to be less efficient in terms of run-time performance. However, as the Reactor implies a non-preemptive multitasking model, each concrete event handler must ensure that it does not perform operations that may starve out other event handlers.
+- **Trades type-safety for flexibility**: All concrete event handlers are abstracted as **void***. When converting a void-pointer back to a pointer of a concrete event handler type, the compiler doesn’t have any way to detect an erroneous conversion. We fight this potential problem by implementing the **Observer** pattern, which has the same solution as **Reactor**. Define unique notification functions for each different type of event handler and bind these functions and event handler together using an `EventHandler` structure.
+
+## Summary
+
+The **Reactor** pattern simplifies event-driven applications by decoupling the different responsibilities. The responsibilities are now encapsulated in separate modules.
+
+There is much more to the **Reactor** pattern than described in this article. Particularly, several variations that all come with different benefits and trade-offs. For an excellent in-depth treatment of the **Reactor** and other patterns in the domain, we recommend the book _**Pattern-Oriented Software Architecture**_, volume 2.
+

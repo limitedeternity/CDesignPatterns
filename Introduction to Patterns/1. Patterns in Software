@@ -1,0 +1,27 @@
+## Software development and patterns
+
+Software development is difficult. It’s an act of balancing different forces while trying to close the gap between the problem domain and a solution model.
+
+Worse yet, we have to start at a point where our understanding of these models is still incomplete. The computer is an unforgiving host. We constantly have to juggle with and tame complexity on multiple levels. And we need to be extremely precise and correct in expressing our solutions.
+
+Given this view, we consider patterns to be valuable tools in any software developer’s skill set. However, they’re also one of the concepts most misunderstood within our profession.
+
+However, these criticisms are valid. Patterns have been used speculatively in many designs, perhaps most often within the Java community. The resulting context is layers of abstractions that detour away from the root problem and instead make you wrestle with implementations. Afterall, maintaining an **AbstractFactorySingletonDecoratorBuilderPrototypeFlyweight** isn’t why we all chose to go into programming.
+
+### Criticism
+
+Other criticisms stem from the years of pattern introduction.
+
+- Patterns sprung from the work of architect Christopher Alexander. Since the dawn of large-scale programming projects, the software community has borrowed both terminology and design philosophy from the discipline of architecture.
+- Sometimes the parallels have been stretched beyond the limits of both use and reason. This was the case with much of the secondary literature on design patterns that arose from the excitement over this fascinating work.
+- Writing about patterns rather than direct solutions lead to a gap:
+    * It wasn’t always clear how patterns applied to the actual programs we were writing.
+    * How do they solve any interesting problem?
+- Patterns were viewed abstractly. Nothing could be further from Alexander’s original intent.
+
+### Alexander’s patterns
+
+- The patterns found in Alexander’s books are simple and elegant formulations on how to solve recurring problems in different contexts.
+- Alexander’s patterns refer to the physical world. They are about the nature of making towns and buildings. Alexander’s philosophy is about bringing those buildings to life.
+- His work praises collaborative construction guided by a shared language. I.e., pattern language.
+- To Alexander, such a language is a generative, non-mechanical construct. It’s a language with the power to evolve and grow. As such, patterns are more of a communication tool than technical solutions.

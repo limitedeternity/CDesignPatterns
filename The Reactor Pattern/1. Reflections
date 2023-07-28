@@ -1,0 +1,18 @@
+## Why do we need the Reactor pattern?
+
+So far, the patterns in this course have addressed general, recurring design problems present in most non-trivial programs. The  **Reactor**  pattern is more limited in its scope. It’s a pattern that operates on the architectural level of design. We include it for its elegant separations of concerns. As such, the pattern is a nice example of good design principles that have value in themselves.
+
+## Perfect example of the Reactor Pattern
+
+Every design decision involves trade-offs. The Reactor pattern is no exception. It sure is a non-trivial pattern to implement. Yet, when used in the right context, a Reactor provides an elegant programming model. Over the years, I’ve worked on several systems where Reactors were implemented:
+
+-   Systems running on hardware with limited capabilities.
+-   Systems receiving stimuli from multiple sources.
+-   Systems based on asynchronous messages sent between independent Linux processes.
+-   Systems where messages are distributed through a third-party message-oriented middleware.
+-   Systems with many processes that interface with external systems over the network.
+
+**Reactor** is a wonderful pattern because it takes care of communication challenges. The Reactor will encapsulate most of the messaging independently from type of receiver. When supporting a new feature, an application code can focus on the actual problem and rely on the Reactor implementation to route the **I/O**.
+
+The **Reactor** is a pattern for **synchronous I/O**. Over the last years, **asynchronous I/O** has become much more common. In part, because **asynchronous I/O** provides an opportunity for programs to take advantage of multi-core machines. If you happen to work in that context, we recommend you have a look at a close relative to the **Reactor**, the **Proactor** pattern. A **Proactor** specifically targets asynchronous read and write operations.
+

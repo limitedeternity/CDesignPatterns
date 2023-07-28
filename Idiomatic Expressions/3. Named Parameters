@@ -1,0 +1,21 @@
+## Named Parameters
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+
+int main()
+{
+	size_t timeoutInSeconds = 1;
+	const bool doNotRescheduleTimer = false;
+
+	notifyClosingDoor = startTimer(timeoutInSeconds = 4, doNotRescheduleTimer);
+	closeDoor = startTimer(timeoutInSeconds = 2, doNotRescheduleTimer);
+
+	return 0;
+}
+```
+
+Although this idiom seems like a good solution, most often it is just a bandaid for the root issues. Most examples for its applicability would be better solved by redesigning the code. This suggests that **Named Parameters** are more of a cool trick than a true idiomatic expression.
+

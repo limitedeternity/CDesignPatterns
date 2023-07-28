@@ -1,0 +1,70 @@
+## Constants to the Left
+
+This idiom is used to prevent erroneous assignments in comparisons. [Consider the following](https://cdn.memes.com/up/36920811677787701/i/1679313217744.jpg):
+```c
+#include <stdio.h>
+
+int main()
+{
+	int x = 0;
+
+	if (x = 0)
+	{
+		/* This will never be true! */
+		printf("You should see this\n");
+	}
+	else
+	{
+		printf("You should not see this\n");
+	}
+
+	return 0;
+}
+```
+
+By keeping **constants to the left** in comparisons, the compiler will catch an erroneous assignment. A code such as:
+```c
+#include <stdio.h>
+
+int main()
+{
+	int x = 0;
+
+    /* This is going to fail! */
+	if (0 = x)
+	{
+		printf("You should see this\n");
+	}
+	else
+	{
+		printf("You should not see this\n");
+	}
+
+	return 0;
+}
+```
+
+is simply not a valid C, and the compiler is forced to issue a diagnostic. After correcting the if-statement, the code using this idiom looks like this:
+```c
+#include <stdio.h>
+
+int main()
+{
+	int x = 0;
+
+	if (0 == x)
+	{
+		/* Now that's more like it */
+		printf("You should see this\n");
+	}
+	else
+	{
+		printf("You should not see this\n");
+	}
+
+	return 0;
+}
+```
+
+Despite its obvious advantage, not everyone agrees on whether the idiom is true. Many experienced programmers argue that keeping constants to the left makes the code harder to read and that the compiler will warn for potentially erroneous assignments anyway. There is certainly some truth to this. It is important to note also that a compiler _**is not required**_ to warn for such usage. And as far as readability concerns, this idiom has been used for years, and a C programmer must be able to read it to understand code written by others.
+
